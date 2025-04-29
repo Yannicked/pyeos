@@ -4,6 +4,7 @@ Tests for the SesameEos class.
 
 import os
 import tempfile
+from typing import Generator
 
 import numpy as np
 import pytest
@@ -15,7 +16,7 @@ from pyeos.writer.sesame import SesameWriter
 
 
 @pytest.fixture
-def temp_sesame_file():
+def temp_sesame_file() -> Generator[str, None, None]:
     """Create a temporary SESAME file for testing."""
     with tempfile.NamedTemporaryFile(suffix=".sesame", delete=False) as temp_file:
         file_name = temp_file.name
@@ -37,7 +38,7 @@ def temp_sesame_file():
             os.remove(file_name)
 
 
-def test_sesame_eos_initialization(temp_sesame_file):
+def test_sesame_eos_initialization(temp_sesame_file: str):
     """Test that SesameEos initializes correctly."""
     # Test with default component (total)
     eos = SesameEos(temp_sesame_file)
@@ -59,7 +60,7 @@ def test_sesame_eos_initialization(temp_sesame_file):
         SesameEos(temp_sesame_file, component="invalid")
 
 
-def test_sesame_eos_xarray_dataset(temp_sesame_file):
+def test_sesame_eos_xarray_dataset(temp_sesame_file: str):
     """Test that SesameEos creates proper xarray dataset."""
     eos = SesameEos(temp_sesame_file)
 
@@ -82,7 +83,7 @@ def test_sesame_eos_xarray_dataset(temp_sesame_file):
     assert eos.helmholtz_da.name == "helmholtz_free_energy"
 
 
-def test_sesame_eos_interpolation(temp_sesame_file):
+def test_sesame_eos_interpolation(temp_sesame_file: str):
     """Test that SesameEos interpolates correctly."""
     eos = SesameEos(temp_sesame_file)
 
@@ -108,12 +109,17 @@ def test_sesame_eos_interpolation(temp_sesame_file):
     pressure_array = eos.PressureFromDensityTemperature(rho_grid, temp_grid)
     helmholtz_array = eos.HelmholtzFreeEnergyFromDensityTemperature(rho_grid, temp_grid)
 
+    # Convert to numpy arrays if they are scalars
+    energy_array = np.atleast_1d(energy_array)
+    pressure_array = np.atleast_1d(pressure_array)
+    helmholtz_array = np.atleast_1d(helmholtz_array)
+
     assert energy_array.shape == rho_grid.shape
     assert pressure_array.shape == rho_grid.shape
     assert helmholtz_array.shape == rho_grid.shape
 
 
-def test_sesame_eos_properties(temp_sesame_file):
+def test_sesame_eos_properties(temp_sesame_file: str):
     """Test that SesameEos properties match expected values."""
     # Create reference EOS
     ref_eos = IdealGamma(5 / 3, 1.008, 1)

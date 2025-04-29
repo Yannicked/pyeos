@@ -8,7 +8,6 @@ interpolates over SESAME format tables using xarray.
 import xarray as xr
 
 from ..reader.sesame import SesameReader
-from ..types import EOSReal
 from .xarray_eos import XArrayEos
 
 
@@ -21,7 +20,7 @@ class SesameEos(XArrayEos):
     equation of state data with efficient interpolation.
     """
 
-    def __init__(self, file_name, component="total") -> None:
+    def __init__(self, file_name: str, component: str = "total") -> None:
         """
         Initialize the SESAME table interpolation equation of state.
 
@@ -38,23 +37,17 @@ class SesameEos(XArrayEos):
         self.reader = SesameReader(file_name)
 
         # Read material data
-        material_data = self.reader.read_material_data()
-        self._Z = material_data["atomic_number"]
-        self._A = material_data["atomic_mass"]
+        material_properties = self.reader.read_material_properties()
+        self._Z = material_properties.atomic_number
+        self._A = material_properties.atomic_mass
 
         # Read EOS data based on component
         if component == "total":
-            density, temperature, energy, pressure, helmholtz = (
-                self.reader.read_total_data()
-            )
+            material_data = self.reader.read_total_data()
         elif component == "ion":
-            density, temperature, energy, pressure, helmholtz = (
-                self.reader.read_ion_data()
-            )
+            material_data = self.reader.read_ion_data()
         elif component == "electron":
-            density, temperature, energy, pressure, helmholtz = (
-                self.reader.read_electron_data()
-            )
+            material_data = self.reader.read_electron_data()
         else:
             raise ValueError(
                 f"Invalid component: {component}. "
@@ -62,26 +55,35 @@ class SesameEos(XArrayEos):
             )
 
         # Create xarray DataArrays for each property
-        # Note: SESAME tables store data with temperature as the first dimension
-        # and density as the second dimension
+        # Note: SESAME tables store data with temperature as the first
+        # dimension and density as the second dimension
         self.energy_da = xr.DataArray(
-            energy,
+            material_data.energy,
             dims=["temperature", "density"],
-            coords={"temperature": temperature, "density": density},
+            coords={
+                "temperature": material_data.temperature,
+                "density": material_data.density,
+            },
             name="internal_energy",
         )
 
         self.pressure_da = xr.DataArray(
-            pressure,
+            material_data.pressure,
             dims=["temperature", "density"],
-            coords={"temperature": temperature, "density": density},
+            coords={
+                "temperature": material_data.temperature,
+                "density": material_data.density,
+            },
             name="pressure",
         )
 
         self.helmholtz_da = xr.DataArray(
-            helmholtz,
+            material_data.helmholtz,
             dims=["temperature", "density"],
-            coords={"temperature": temperature, "density": density},
+            coords={
+                "temperature": material_data.temperature,
+                "density": material_data.density,
+            },
             name="helmholtz_free_energy",
         )
 

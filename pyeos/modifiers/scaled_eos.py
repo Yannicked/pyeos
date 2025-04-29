@@ -34,7 +34,9 @@ class ScaledEos(Eos):
         self.eos = my_eos
         self.scale_fn = scale_fn
 
-    def InternalEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def InternalEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate scaled internal energy from density and temperature.
 
@@ -54,7 +56,9 @@ class ScaledEos(Eos):
             rho, temperature
         ) * self.scale_fn(rho, temperature)
 
-    def PressureFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def PressureFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate scaled pressure from density and temperature.
 
@@ -74,7 +78,9 @@ class ScaledEos(Eos):
             rho, temperature
         ) * self.scale_fn(rho, temperature)
 
-    def HelmholtzFreeEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def HelmholtzFreeEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate scaled Helmholtz free energy from density and temperature.
 

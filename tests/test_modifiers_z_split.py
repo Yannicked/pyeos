@@ -27,12 +27,16 @@ def test_thomas_fermi_ionization():
 
     # Test with 1D arrays
     ionization_array = thomas_fermi_ionization(rho_array, T_array, Z, A)
+    # Convert to numpy array if it's a scalar
+    ionization_array = np.atleast_1d(ionization_array)
     assert ionization_array.shape == rho_array.shape
     assert np.all(0.0 <= ionization_array) and np.all(ionization_array <= Z)
 
     # Test with 2D arrays (meshgrid)
     rho_grid, T_grid = np.meshgrid(rho_array, T_array)
     ionization_grid = thomas_fermi_ionization(rho_grid, T_grid, Z, A)
+    # Convert to numpy array if it's a scalar
+    ionization_grid = np.atleast_1d(ionization_grid)
     assert ionization_grid.shape == rho_grid.shape
     assert np.all(0.0 <= ionization_grid) and np.all(ionization_grid <= Z)
 

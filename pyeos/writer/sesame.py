@@ -9,7 +9,6 @@ high-energy-density physics simulations.
 from datetime import datetime
 
 import numpy as np
-from numpy.typing import NDArray
 
 from ..eos import Eos
 from ..types import EOSArray
@@ -35,7 +34,7 @@ class SesameWriter(Writer):
     CGS_ENERGY_TO_SESAME = 1e-10
     CGS_PRESSURE_TO_SESAME = 1e-10
 
-    def __init__(self, file_name, material_id):
+    def __init__(self, file_name: str, material_id: int):
         """
         Initialize the SESAME writer.
 
@@ -49,9 +48,9 @@ class SesameWriter(Writer):
         self.file_name = file_name
         self.material_id = material_id
         self.comment_table = 101
-        self.extra_comments = []
+        self.extra_comments: list[str] = []
 
-    def __enter__(self):
+    def __enter__(self) -> "SesameWriter":
         """
         Context manager entry point.
 
@@ -62,12 +61,12 @@ class SesameWriter(Writer):
         SesameWriter
             Self reference for context manager
         """
-        if self.file_name is None or self.material_id is None:
+        if not self.file_name or not self.material_id:
             raise ValueError("Filename and material id should be set!")
         self.file = open(self.file_name, "w")
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type: type, value: Exception, traceback: object) -> None:
         """
         Context manager exit point.
 
@@ -75,7 +74,7 @@ class SesameWriter(Writer):
         """
         self.file.close()
 
-    def add_comment(self, comment: str):
+    def add_comment(self, comment: str) -> None:
         """
         Add a comment to be written to the SESAME file.
 
@@ -86,7 +85,7 @@ class SesameWriter(Writer):
         """
         self.extra_comments.append(comment)
 
-    def write(self, eos: Eos, ion_eos: Eos, electron_eos: Eos):
+    def write(self, eos: Eos, ion_eos: Eos, electron_eos: Eos) -> None:
         """
         Write complete equation of state data to the SESAME file.
 
@@ -107,41 +106,93 @@ class SesameWriter(Writer):
             self.write_comment(comment)
         self.write_material_data(eos.Z, eos.A, 1.0, 1.0, 1.0)
 
-        density = np.geomspace(1e-10, 10, 100)
-        temperature = np.geomspace(1, 174067875.0925, 100)
+        density = np.geomspace(1e-10, 10, 100, dtype=np.float64)
+        temperature = np.geomspace(1, 174067875.0925, 100, dtype=np.float64)
         density_grid, temperature_grid = np.meshgrid(density, temperature)
         density_grid = density_grid.flatten()
         temperature_grid = temperature_grid.flatten()
+        # Calculate EOS values and reshape to match the grid
+        energy = eos.InternalEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+        pressure = eos.PressureFromDensityTemperature(density_grid, temperature_grid)
+        helmholtz = eos.HelmholtzFreeEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+
+        # Convert to numpy arrays if they are scalars
+        energy_array = np.atleast_1d(energy).reshape(temperature.size, density.size)
+        pressure_array = np.atleast_1d(pressure).reshape(temperature.size, density.size)
+        helmholtz_array = np.atleast_1d(helmholtz).reshape(
+            temperature.size, density.size
+        )
+
         self.write_total_data(
             density,
             temperature,
-            eos.InternalEnergyFromDensityTemperature(density_grid, temperature_grid),
-            eos.PressureFromDensityTemperature(density_grid, temperature_grid),
-            eos.HelmholtzFreeEnergyFromDensityTemperature(
-                density_grid, temperature_grid
-            ),
+            energy_array,
+            pressure_array,
+            helmholtz_array,
         )
+
+        # Calculate ion EOS values
+        ion_energy = ion_eos.InternalEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+        ion_pressure = ion_eos.PressureFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+        ion_helmholtz = ion_eos.HelmholtzFreeEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+
+        # Convert to numpy arrays if they are scalars
+        ion_energy_array = np.atleast_1d(ion_energy).reshape(
+            temperature.size, density.size
+        )
+        ion_pressure_array = np.atleast_1d(ion_pressure).reshape(
+            temperature.size, density.size
+        )
+        ion_helmholtz_array = np.atleast_1d(ion_helmholtz).reshape(
+            temperature.size, density.size
+        )
+
         self.write_ion_data(
             density,
             temperature,
-            ion_eos.InternalEnergyFromDensityTemperature(
-                density_grid, temperature_grid
-            ),
-            ion_eos.PressureFromDensityTemperature(density_grid, temperature_grid),
-            ion_eos.HelmholtzFreeEnergyFromDensityTemperature(
-                density_grid, temperature_grid
-            ),
+            ion_energy_array,
+            ion_pressure_array,
+            ion_helmholtz_array,
         )
+
+        # Calculate electron EOS values
+        electron_energy = electron_eos.InternalEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+        electron_pressure = electron_eos.PressureFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+        electron_helmholtz = electron_eos.HelmholtzFreeEnergyFromDensityTemperature(
+            density_grid, temperature_grid
+        )
+
+        # Convert to numpy arrays if they are scalars
+        electron_energy_array = np.atleast_1d(electron_energy).reshape(
+            temperature.size, density.size
+        )
+        electron_pressure_array = np.atleast_1d(electron_pressure).reshape(
+            temperature.size, density.size
+        )
+        electron_helmholtz_array = np.atleast_1d(electron_helmholtz).reshape(
+            temperature.size, density.size
+        )
+
         self.write_electron_data(
             density,
             temperature,
-            electron_eos.InternalEnergyFromDensityTemperature(
-                density_grid, temperature_grid
-            ),
-            electron_eos.PressureFromDensityTemperature(density_grid, temperature_grid),
-            electron_eos.HelmholtzFreeEnergyFromDensityTemperature(
-                density_grid, temperature_grid
-            ),
+            electron_energy_array,
+            electron_pressure_array,
+            electron_helmholtz_array,
         )
 
     def write_header(
@@ -153,7 +204,7 @@ class SesameWriter(Writer):
         creation_date: str,
         update_date: str,
         version: int,
-    ):
+    ) -> None:
         """
         Write a SESAME header record.
 
@@ -186,13 +237,13 @@ class SesameWriter(Writer):
             )
         )
 
-    def write_words(self, data: NDArray[np.float64]):
+    def write_words(self, data: EOSArray) -> None:
         """
         Write an array of data words to the SESAME file.
 
         Parameters
         ----------
-        data : NDArray[np.float64]
+        data : EOSArray
             Array of data values to write
         """
         data_lines = [data[i : i + 5] for i in range(0, len(data), 5)]
@@ -205,7 +256,7 @@ class SesameWriter(Writer):
                 f"{' ' * 22 * (5 - count)}{'1' * count}{'0' * (5 - count)}\n"
             )
 
-    def write_comment(self, comment: str, comment_table_idx: int | None = None):
+    def write_comment(self, comment: str, comment_table_idx: int | None = None) -> None:
         """
         Write a comment to the SESAME file.
 
@@ -248,7 +299,7 @@ class SesameWriter(Writer):
         normal_density: float,
         solid_bulk_modulus: float,
         exchange_coefficient: float,
-    ):
+    ) -> None:
         """
         Write material data to the SESAME file.
 
@@ -287,7 +338,7 @@ class SesameWriter(Writer):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write equation of state data to the SESAME file.
 
@@ -306,14 +357,19 @@ class SesameWriter(Writer):
         helmholtz : EOSArray
             Array of Helmholtz free energy values
         """
+        # Flatten 2D arrays before concatenation
+        pressure_flat = pressure.flatten() if pressure.ndim > 1 else pressure
+        energy_flat = energy.flatten() if energy.ndim > 1 else energy
+        helmholtz_flat = helmholtz.flatten() if helmholtz.ndim > 1 else helmholtz
+
         data = np.concatenate(
             [
                 np.array([len(density), len(temperature)]),
                 density * self.CGS_DENSITY_TO_SESAME,
                 temperature,
-                pressure * self.CGS_PRESSURE_TO_SESAME,
-                energy * self.CGS_ENERGY_TO_SESAME,
-                helmholtz * self.CGS_ENERGY_TO_SESAME,
+                pressure_flat * self.CGS_PRESSURE_TO_SESAME,
+                energy_flat * self.CGS_ENERGY_TO_SESAME,
+                helmholtz_flat * self.CGS_ENERGY_TO_SESAME,
             ]
         )
         current_date = datetime.now()
@@ -328,7 +384,7 @@ class SesameWriter(Writer):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write total equation of state data to the SESAME file.
 
@@ -356,7 +412,7 @@ class SesameWriter(Writer):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write ion component equation of state data to the SESAME file.
 
@@ -384,7 +440,7 @@ class SesameWriter(Writer):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write electron component equation of state data to the SESAME file.
 
@@ -405,7 +461,7 @@ class SesameWriter(Writer):
         """
         self.write_data(304, density, temperature, energy, pressure, helmholtz)
 
-    def write_table_end(self):
+    def write_table_end(self) -> None:
         """
         Write the end marker for the SESAME file.
         """

@@ -27,7 +27,7 @@ class Writer(ABC):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write ion component equation of state data.
 
@@ -54,7 +54,7 @@ class Writer(ABC):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write electron component equation of state data.
 
@@ -81,7 +81,7 @@ class Writer(ABC):
         energy: EOSArray,
         pressure: EOSArray,
         helmholtz: EOSArray,
-    ):
+    ) -> None:
         """
         Write total (combined) equation of state data.
 

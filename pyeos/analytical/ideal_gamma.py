@@ -21,7 +21,7 @@ class IdealGamma(Eos):
     and as a baseline for more complex equation of state models.
     """
 
-    def __init__(self, gamma, A, Z) -> None:
+    def __init__(self, gamma: float, A: float, Z: float) -> None:
         """
         Initialize the ideal gamma-law equation of state.
 
@@ -39,7 +39,9 @@ class IdealGamma(Eos):
         self._A = A
         self._Z = Z
 
-    def InternalEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def InternalEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate internal energy from density and temperature.
 
@@ -59,7 +61,9 @@ class IdealGamma(Eos):
         """
         return np.maximum(0.0, self.const / (self.gamma - 1) * temperature)
 
-    def PressureFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def PressureFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate pressure from density and temperature.
 
@@ -79,7 +83,9 @@ class IdealGamma(Eos):
         """
         return np.maximum(0.0, self.const * rho * temperature)
 
-    def HelmholtzFreeEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def HelmholtzFreeEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate Helmholtz free energy from density and temperature.
 

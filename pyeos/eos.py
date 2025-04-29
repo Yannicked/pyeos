@@ -25,7 +25,9 @@ class Eos(ABC):
         pass
 
     @abstractmethod
-    def InternalEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def InternalEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate internal energy from density and temperature.
 
@@ -44,7 +46,9 @@ class Eos(ABC):
         pass
 
     @abstractmethod
-    def PressureFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def PressureFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate pressure from density and temperature.
 
@@ -63,7 +67,9 @@ class Eos(ABC):
         pass
 
     @abstractmethod
-    def HelmholtzFreeEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def HelmholtzFreeEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate Helmholtz free energy from density and temperature.
 

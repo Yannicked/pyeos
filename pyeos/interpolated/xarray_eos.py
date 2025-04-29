@@ -4,17 +4,22 @@ Base class for xarray based EOS classes
 """
 
 import numpy as np
+import xarray as xr
 
 from ..eos import Eos
-from ..types import EOSReal
+from ..types import EOSArray, EOSReal
 
 
 class XArrayEos(Eos):
+    dataset: xr.Dataset
+
     @property
-    def xarray_handle(self):
+    def xarray_handle(self) -> xr.Dataset:
         return self.dataset
 
-    def _interpolate(self, data_array, rho, temperature) -> EOSReal:
+    def _interpolate(
+        self, data_array: xr.DataArray, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Interpolate a data array at the given density and temperature.
 
@@ -57,14 +62,19 @@ class XArrayEos(Eos):
             assume_sorted=True,
             kwargs={"fill_value": None},
         )
+        values: EOSArray = result.values  # type: ignore
 
         # Return scalar or array based on input type
         if scalar_input:
-            return float(result.values[0])
+            # For scalar input, return a float
+            return float(values[0])
         else:
-            return result.values.reshape(rho_array.shape)
+            # For array input, reshape and return as numpy array
+            return values.reshape(rho_array.shape)
 
-    def InternalEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def InternalEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate internal energy from density and temperature.
 
@@ -82,7 +92,9 @@ class XArrayEos(Eos):
         """
         return self._interpolate(self.dataset.internal_energy, rho, temperature)
 
-    def PressureFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def PressureFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate pressure from density and temperature.
 
@@ -100,7 +112,9 @@ class XArrayEos(Eos):
         """
         return self._interpolate(self.dataset.pressure, rho, temperature)
 
-    def HelmholtzFreeEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
+    def HelmholtzFreeEnergyFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
         """
         Calculate Helmholtz free energy from density and temperature.
 

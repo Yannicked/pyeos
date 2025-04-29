@@ -72,12 +72,12 @@ def thomas_fermi_ionization(
     x = np.where(electron_temperature == 0, x_zero, x_finite)
 
     # Convert x to average ionization Zion, bounded between 0 and Z
-    Zion = Z * x / (1.0 + x + np.sqrt(1.0 + 2.0 * x))
+    Zion: EOSReal = Z * x / (1.0 + x + np.sqrt(1.0 + 2.0 * x))
 
     return Zion
 
 
-def ZSplit(eos: Eos):
+def ZSplit(eos: Eos) -> tuple[ScaledEos, ScaledEos]:
     """
     Split an equation of state into electron and ion components.
 
@@ -96,11 +96,11 @@ def ZSplit(eos: Eos):
         A tuple containing (electron_eos, ion_eos)
     """
 
-    def electron_scale(rho, electron_temperature):
+    def electron_scale(rho: EOSReal, electron_temperature: EOSReal) -> EOSReal:
         ionization = thomas_fermi_ionization(rho, electron_temperature, eos.Z, eos.A)
         return ionization / (ionization + 1)
 
-    def ion_scale(rho, electron_temperature):
+    def ion_scale(rho: EOSReal, electron_temperature: EOSReal) -> EOSReal:
         ionization = thomas_fermi_ionization(rho, electron_temperature, eos.Z, eos.A)
         return 1 / (ionization + 1)
 

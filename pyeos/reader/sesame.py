@@ -6,9 +6,12 @@ which is a standard format for equation of state data used in
 high-energy-density physics simulations.
 """
 
+from typing import Dict, List
+
 import numpy as np
 
-from . import Reader
+from ..types import EOSArray
+from . import MaterialData, MaterialProperties, Reader
 
 
 class SesameReader(Reader):
@@ -25,7 +28,7 @@ class SesameReader(Reader):
     CGS_ENERGY_FROM_SESAME = 1e10
     CGS_PRESSURE_FROM_SESAME = 1e10
 
-    def __init__(self, file_name):
+    def __init__(self, file_name: str):
         """
         Initialize the SESAME reader.
 
@@ -35,20 +38,20 @@ class SesameReader(Reader):
             Path to the input file
         """
         self.file_name = file_name
-        self.file_content = None
-        self.tables = {}
-        self.material_id = None
+        self.file_content: List[str] = []
+        self.tables: Dict[int, EOSArray] = {}
+        self.material_id: int | None = None
         self._read_file()
         self._parse_tables()
 
-    def _read_file(self):
+    def _read_file(self) -> None:
         """
         Read the SESAME file content.
         """
         with open(self.file_name, "r") as f:
             self.file_content = f.readlines()
 
-    def _parse_tables(self):
+    def _parse_tables(self) -> None:
         """
         Parse the SESAME file content into tables.
         """
@@ -87,7 +90,7 @@ class SesameReader(Reader):
             else:
                 i += 1
 
-    def _read_data_block(self, start_line, num_words):
+    def _read_data_block(self, start_line: int, num_words: int) -> EOSArray:
         """
         Read a block of data from the file.
 
@@ -100,10 +103,10 @@ class SesameReader(Reader):
 
         Returns
         -------
-        NDArray[np.float64]
+        EOSArray
             Array of data values
         """
-        data = []
+        data: List[float] = []
         lines_to_read = self._count_data_lines(num_words)
 
         for i in range(lines_to_read):
@@ -127,7 +130,7 @@ class SesameReader(Reader):
 
         return np.array(data)
 
-    def _count_data_lines(self, num_words):
+    def _count_data_lines(self, num_words: int) -> int:
         """
         Calculate the number of lines needed for a given number of words.
 
@@ -143,7 +146,7 @@ class SesameReader(Reader):
         """
         return (num_words + 4) // 5  # 5 words per line, rounded up
 
-    def _extract_table_data(self, table_id):
+    def _extract_table_data(self, table_id: int) -> MaterialData:
         """
         Extract and process data from a specific table.
 
@@ -161,22 +164,24 @@ class SesameReader(Reader):
         if table_id not in self.tables:
             raise ValueError(f"Table {table_id} not found in SESAME file")
 
-        data = self.tables[table_id]
+        data: EOSArray = self.tables[table_id]
 
         # First two values are the number of density and temperature points
         num_density = int(data[0])
         num_temperature = int(data[1])
 
         # Extract the density and temperature arrays
-        density = data[2 : 2 + num_density] * self.CGS_DENSITY_FROM_SESAME
-        temperature = data[2 + num_density : 2 + num_density + num_temperature]
+        density: EOSArray = data[2 : 2 + num_density] * self.CGS_DENSITY_FROM_SESAME
+        temperature: EOSArray = data[
+            2 + num_density : 2 + num_density + num_temperature
+        ]
 
         # Calculate the total number of points in the grid
         total_points = num_density * num_temperature
 
         # Extract pressure, energy, and helmholtz arrays
         start_idx = 2 + num_density + num_temperature
-        pressure = (
+        pressure: EOSArray = (
             data[start_idx : start_idx + total_points].reshape(
                 num_temperature, num_density
             )
@@ -184,7 +189,7 @@ class SesameReader(Reader):
         )
 
         start_idx += total_points
-        energy = (
+        energy: EOSArray = (
             data[start_idx : start_idx + total_points].reshape(
                 num_temperature, num_density
             )
@@ -192,16 +197,16 @@ class SesameReader(Reader):
         )
 
         start_idx += total_points
-        helmholtz = (
+        helmholtz: EOSArray = (
             data[start_idx : start_idx + total_points].reshape(
                 num_temperature, num_density
             )
             * self.CGS_ENERGY_FROM_SESAME
         )
 
-        return density, temperature, energy, pressure, helmholtz
+        return MaterialData(density, temperature, energy, pressure, helmholtz)
 
-    def read_material_data(self):
+    def read_material_properties(self) -> MaterialProperties:
         """
         Read material data from the SESAME file.
 
@@ -213,17 +218,13 @@ class SesameReader(Reader):
         if 201 not in self.tables:
             raise ValueError("Material data table (201) not found in SESAME file")
 
-        data = self.tables[201]
+        data: EOSArray = self.tables[201]
 
-        return {
-            "atomic_number": data[0],
-            "atomic_mass": data[1],
-            "normal_density": data[2],
-            "solid_bulk_modulus": data[3],
-            "exchange_coefficient": data[4] if len(data) > 4 else None,
-        }
+        return MaterialProperties(*data)
 
-    def read_total_data(self):
+    def read_total_data(
+        self,
+    ) -> MaterialData:
         """
         Read total equation of state data from the SESAME file.
 
@@ -235,7 +236,9 @@ class SesameReader(Reader):
         """
         return self._extract_table_data(301)
 
-    def read_ion_data(self):
+    def read_ion_data(
+        self,
+    ) -> MaterialData:
         """
         Read ion component equation of state data from the SESAME file.
 
@@ -247,7 +250,9 @@ class SesameReader(Reader):
         """
         return self._extract_table_data(303)
 
-    def read_electron_data(self):
+    def read_electron_data(
+        self,
+    ) -> MaterialData:
         """
         Read electron component equation of state data from the SESAME file.
 
