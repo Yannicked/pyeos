@@ -5,15 +5,14 @@ This module provides an implementation of an equation of state that
 interpolates over SESAME format tables using xarray.
 """
 
-import numpy as np
 import xarray as xr
 
-from ..eos import Eos
 from ..reader.sesame import SesameReader
 from ..types import EOSReal
+from .xarray_eos import XArrayEos
 
 
-class SesameEos(Eos):
+class SesameEos(XArrayEos):
     """
     SESAME table interpolation equation of state.
 
@@ -94,110 +93,6 @@ class SesameEos(Eos):
                 "helmholtz_free_energy": self.helmholtz_da,
             }
         )
-
-    def _interpolate(self, data_array, rho, temperature) -> EOSReal:
-        """
-        Interpolate a data array at the given density and temperature.
-
-        Parameters
-        ----------
-        data_array : xr.DataArray
-            The data array to interpolate
-        rho : EOSReal
-            Density value(s)
-        temperature : EOSReal
-            Temperature value(s)
-
-        Returns
-        -------
-        EOSReal
-            Interpolated value(s)
-        """
-        # Convert inputs to numpy arrays if they're not already
-        rho_array = np.asarray(rho)
-        temp_array = np.asarray(temperature)
-
-        # Check if we're dealing with scalar or array inputs
-        scalar_input = rho_array.ndim == 0 and temp_array.ndim == 0
-
-        # Reshape for interpolation if needed
-        if scalar_input:
-            rho_array = rho_array.reshape(1)
-            temp_array = temp_array.reshape(1)
-
-        # Create a new coordinates dictionary for interpolation
-        coords = {
-            "density": ("points", rho_array.flatten()),
-            "temperature": ("points", temp_array.flatten()),
-        }
-
-        # Perform the interpolation
-        result = data_array.interp(
-            coords,
-            method="linear",
-            assume_sorted=True,
-            kwargs={"fill_value": None},
-        )
-
-        # Return scalar or array based on input type
-        if scalar_input:
-            return float(result.values)
-        else:
-            return result.values.reshape(rho_array.shape)
-
-    def InternalEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
-        """
-        Calculate internal energy from density and temperature.
-
-        Parameters
-        ----------
-        rho : EOSReal
-            Density value(s)
-        temperature : EOSReal
-            Temperature value(s)
-
-        Returns
-        -------
-        EOSReal
-            Internal energy value(s)
-        """
-        return self._interpolate(self.energy_da, rho, temperature)
-
-    def PressureFromDensityTemperature(self, rho, temperature) -> EOSReal:
-        """
-        Calculate pressure from density and temperature.
-
-        Parameters
-        ----------
-        rho : EOSReal
-            Density value(s)
-        temperature : EOSReal
-            Temperature value(s)
-
-        Returns
-        -------
-        EOSReal
-            Pressure value(s)
-        """
-        return self._interpolate(self.pressure_da, rho, temperature)
-
-    def HelmholtzFreeEnergyFromDensityTemperature(self, rho, temperature) -> EOSReal:
-        """
-        Calculate Helmholtz free energy from density and temperature.
-
-        Parameters
-        ----------
-        rho : EOSReal
-            Density value(s)
-        temperature : EOSReal
-            Temperature value(s)
-
-        Returns
-        -------
-        EOSReal
-            Helmholtz free energy value(s)
-        """
-        return self._interpolate(self.helmholtz_da, rho, temperature)
 
     @property
     def A(self) -> float:

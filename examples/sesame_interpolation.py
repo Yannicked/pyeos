@@ -99,7 +99,7 @@ def plot_eos_properties(eos, density_range, temperature_range, output_prefix=Non
 @click.option(
     "--rho-min",
     type=float,
-    default=1e-4,
+    default=1e-8,
     help="Minimum density (g/cm³)",
 )
 @click.option(
@@ -111,7 +111,7 @@ def plot_eos_properties(eos, density_range, temperature_range, output_prefix=Non
 @click.option(
     "--temp-min",
     type=float,
-    default=1e2,
+    default=1,
     help="Minimum temperature (K)",
 )
 @click.option(
