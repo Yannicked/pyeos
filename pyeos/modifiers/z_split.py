@@ -46,7 +46,7 @@ def thomas_fermi_ionization(
     reduced_density = rho / (A * Z)
 
     # Scale temperature by Z^(4/3)
-    T_scaled = electron_temperature / Z ** (4.0 / 3.0)
+    T_scaled = electron_temperature / (Z ** (4.0 / 3.0))
 
     # Fractional temperature factor in (0,1)
     T_frac = T_scaled / (1.0 + T_scaled)
@@ -64,15 +64,23 @@ def thomas_fermi_ionization(
     B = -np.exp(b0 + b1 * T_frac + b2 * T_frac**7)
     C = c0 * T_frac + c1
 
-    Q1 = A1 * reduced_density**B
-    Q = (reduced_density**C + Q1**C) ** (1.0 / C)
-    x_finite = ALPHA * Q**BETA
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        Q1 = A1 * reduced_density**B
+        Q1 = np.nan_to_num(Q1)
+        Q = (reduced_density**C + Q1**C) ** (1.0 / C)
+        Q = np.nan_to_num(Q)
+        x_finite = ALPHA * Q**BETA
+        x_finite = np.nan_to_num(x_finite)
 
     # Combine branches: use zero‐T where Te==0, else finite‐T
     x = np.where(electron_temperature == 0, x_zero, x_finite)
 
     # Convert x to average ionization Zion, bounded between 0 and Z
-    Zion: EOSReal = Z * x / (1.0 + x + np.sqrt(1.0 + 2.0 * x))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        Zion: EOSReal = Z * x / (1.0 + x + np.sqrt(1.0 + 2.0 * x))
+
+    # Replace NaNs with 0
+    Zion = np.nan_to_num(Zion)
 
     return Zion
 
