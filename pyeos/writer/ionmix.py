@@ -3,10 +3,9 @@ IONMIX format writer for equation of state data.
 """
 
 import numpy as np
-from datetime import datetime
 
-from ..types import EOSArray
 from ..eos import Eos
+from ..types import EOSArray
 from . import Writer
 
 # Constants
@@ -96,7 +95,7 @@ class IonmixWriter(Writer):
         temps_ev = temperature * EV_FROM_K
 
         # Calculate number densities (cm^-3) from mass densities (g/cm^3)
-        num_dens = density * NA / self.atomic_mass
+        num_dens = density * NA / self.mpi
 
         # Create density/temperature meshgrid
         density_grid, temperature_grid = np.meshgrid(density, temperature)
@@ -123,6 +122,10 @@ class IonmixWriter(Writer):
                 density_grid, temperature_grid
             )
             energy_per_ion = energy * self.mpi  # Convert from erg/g to erg/ion
+            # Reshape to (nt, nd), transpose to (nd, nt), then flatten to match reader
+            energy_per_ion = energy_per_ion.reshape(
+                len(temps_ev), len(num_dens)
+            ).T.flatten()
             self._write_block(energy_per_ion * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate total Cv per ion (ergs/K)
@@ -143,6 +146,7 @@ class IonmixWriter(Writer):
             ion_pressure = ion_eos.PressureFromDensityTemperature(
                 density_grid, temperature_grid
             )
+            # Reshape to (nt, nd), transpose to (nd, nt), then flatten
             ion_pressure = ion_pressure.reshape(
                 len(temps_ev), len(num_dens)
             ).T.flatten()
@@ -152,6 +156,7 @@ class IonmixWriter(Writer):
             ele_pressure = electron_eos.PressureFromDensityTemperature(
                 density_grid, temperature_grid
             )
+            # Reshape to (nt, nd), transpose to (nd, nt), then flatten
             ele_pressure = ele_pressure.reshape(
                 len(temps_ev), len(num_dens)
             ).T.flatten()
@@ -168,20 +173,28 @@ class IonmixWriter(Writer):
                 density_grid, temperature_grid
             )
             ion_energy_per_ion = ion_energy * self.mpi  # Convert from erg/g to erg/ion
-            ion_energy_per_ion = ion_energy_per_ion.reshape(
+            # Reshape to (nt, nd), transpose to (nd, nt), then flatten
+            ion_energy_per_ion_reshaped = ion_energy_per_ion.reshape(
                 len(temps_ev), len(num_dens)
-            ).T.flatten()
-            self._write_block(ion_energy_per_ion * JOULE_FROM_ERG)  # Convert to Joules
+            ).T
+            ion_energy_per_ion_flat = ion_energy_per_ion_reshaped.flatten()
+            self._write_block(
+                ion_energy_per_ion_flat * JOULE_FROM_ERG
+            )  # Convert to Joules
 
             # Calculate electron energy per ion (ergs)
             ele_energy = electron_eos.InternalEnergyFromDensityTemperature(
                 density_grid, temperature_grid
             )
             ele_energy_per_ion = ele_energy * self.mpi  # Convert from erg/g to erg/ion
-            ele_energy_per_ion = ele_energy_per_ion.reshape(
+            # Reshape to (nt, nd), transpose to (nd, nt), then flatten
+            ele_energy_per_ion_reshaped = ele_energy_per_ion.reshape(
                 len(temps_ev), len(num_dens)
-            ).T.flatten()
-            self._write_block(ele_energy_per_ion * JOULE_FROM_ERG)  # Convert to Joules
+            ).T
+            ele_energy_per_ion_flat = ele_energy_per_ion_reshaped.flatten()
+            self._write_block(
+                ele_energy_per_ion_flat * JOULE_FROM_ERG
+            )  # Convert to Joules
 
             # Calculate ion and electron Cv per ion (ergs/K)
             cvion = np.ones_like(ion_energy_per_ion) * 1.0e-16
