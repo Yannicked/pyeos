@@ -159,7 +159,7 @@ class IonmixReader(Reader):
                 f.readline()  # Consume rest of line
 
             # Read the rest of the file into a stream for block reading
-            txt = re.sub(r"\s", "", f.read())
+            txt = re.sub(r"\n", "", f.read())
             self._data_stream = StringIO(txt)
 
             if self.man:
@@ -243,15 +243,13 @@ class IonmixReader(Reader):
         self, energy_per_g: EOSArray, pressure: EOSArray, helmholtz: EOSArray
     ) -> MaterialData:
         """Helper to create MaterialData with correct units and array shapes."""
-        # Ensure arrays are (num_temperature, num_density)
-        # IONMIX data is read as (nd, nt), so transpose is needed.
         temps_k = self.temps_ev * EV_TO_K
         return MaterialData(
             density=self.dens,  # 1D array
             temperature=temps_k,  # 1D array
-            energy=energy_per_g.T,  # Transpose to (nt, nd)
-            pressure=pressure.T,  # Transpose to (nt, nd)
-            helmholtz=helmholtz.T,  # Transpose to (nt, nd)
+            energy=energy_per_g.T,  # Transpose from (nd, nt) to (nt, nd)
+            pressure=pressure.T,  # Transpose from (nd, nt) to (nt, nd)
+            helmholtz=helmholtz.T,  # Transpose from (nd, nt) to (nt, nd)
         )
 
     def read_total_data(self) -> MaterialData:
@@ -265,6 +263,7 @@ class IonmixReader(Reader):
         zeros = np.zeros((self.ndens, self.ntemp))
 
         if self.twot:
+            # In 2T mode, total is the sum of ion and electron components
             total_energy_per_ion = self.eion + self.eele
             total_pressure = self.pion + self.pele
         else:
