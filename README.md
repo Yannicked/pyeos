@@ -17,7 +17,7 @@ PyEOS is a Python package for Equation of State (EOS) calculations, particularly
 ## Installation
 
 ```bash
-pip install pyeos
+pip install git+https://github.com/Yannicked/pyeos
 ```
 
 ## Requirements
