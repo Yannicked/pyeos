@@ -11,11 +11,13 @@ This directory contains example scripts demonstrating various features and capab
 **Description**: This script reads an input file in either IONMIX or SESAME format and converts it to the other format, attempting to preserve the grid structure. It automatically detects the input format based on file extension and provides options for specifying atomic properties and material IDs.
 
 **Usage**:
+
 ```bash
 python convert_eos_tables.py INPUT_FILE OUTPUT_FILE [OPTIONS]
 ```
 
 **Options**:
+
 - `--input-format [auto|ionmix|sesame]`: Input file format (default: auto-detect)
 - `--atomic-number FLOAT`: Atomic number (Z) for IONMIX files
 - `--atomic-mass FLOAT`: Atomic mass (A) in AMU for IONMIX files
@@ -29,11 +31,13 @@ python convert_eos_tables.py INPUT_FILE OUTPUT_FILE [OPTIONS]
 **Description**: This script uses the PyEOS library to create a SESAME table for a material with specified atomic number (Z) and atomic mass number (A) using the ideal gas equation of state with a specified adiabatic index (gamma).
 
 **Usage**:
+
 ```bash
 python ideal_gas_sesame.py [OPTIONS]
 ```
 
 **Options**:
+
 - `-z FLOAT`: Atomic number (Z) [required]
 - `-a FLOAT`: Atomic mass number (A) [required]
 - `--gamma FLOAT`: Adiabatic index (default: 5/3)
@@ -47,11 +51,13 @@ python ideal_gas_sesame.py [OPTIONS]
 **Description**: This script shows how to read an IONMIX table file and create an equation of state that interpolates over the tabulated data using xarray. It generates plots of internal energy and pressure over a range of densities and temperatures.
 
 **Usage**:
+
 ```bash
 python ionmix_interpolation.py IONMIX_FILE [OPTIONS]
 ```
 
 **Options**:
+
 - `--atomic-number FLOAT`: Atomic number (Z) [required]
 - `--atomic-mass FLOAT`: Atomic mass (A) in AMU [required]
 - `--component [total|ion|electron]`: Which component to use (default: total)
@@ -70,11 +76,13 @@ python ionmix_interpolation.py IONMIX_FILE [OPTIONS]
 **Description**: This script shows how to read a SESAME table file and create an equation of state that interpolates over the tabulated data using xarray. It generates plots of internal energy, pressure, and Helmholtz free energy over a range of densities and temperatures.
 
 **Usage**:
+
 ```bash
 python sesame_interpolation.py SESAME_FILE [OPTIONS]
 ```
 
 **Options**:
+
 - `--component [total|ion|electron]`: Which component to use (default: total)
 - `--rho-min FLOAT`: Minimum density in g/cm³ (default: 1e-8)
 - `--rho-max FLOAT`: Maximum density in g/cm³ (default: 100.0)
@@ -90,11 +98,13 @@ python sesame_interpolation.py SESAME_FILE [OPTIONS]
 **Description**: This script loads a SESAME format file, splits the EOS into ion and electron components using the ZSplit modifier, and writes the result to a new SESAME file. This is useful for creating separate ion and electron EOS tables from a total EOS table.
 
 **Usage**:
+
 ```bash
 python sesame_z_split.py SESAME_FILE [OPTIONS]
 ```
 
 **Options**:
+
 - `--output TEXT`: Output file name (default: z_split.sesame)
 
 ## General Usage Notes
