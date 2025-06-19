@@ -40,6 +40,7 @@ class SesameEos(XArrayEos):
         material_properties = self.reader.read_material_properties()
         self._Z = material_properties.atomic_number
         self._A = material_properties.atomic_mass
+        self._material_id = self.reader.material_id
 
         # Read EOS data based on component
         if component == "total":
@@ -119,3 +120,15 @@ class SesameEos(XArrayEos):
             Atomic number
         """
         return self._Z
+
+    @property
+    def material_id(self) -> int:
+        """
+        Get the material ID.
+
+        Returns
+        -------
+        int
+            Material ID
+        """
+        return self._material_id

@@ -85,7 +85,14 @@ class SesameWriter(Writer):
         """
         self.extra_comments.append(comment)
 
-    def write(self, eos: Eos, ion_eos: Eos, electron_eos: Eos) -> None:
+    def write(
+        self,
+        eos: Eos,
+        ion_eos: Eos,
+        electron_eos: Eos,
+        density: EOSArray | None = None,
+        temperature: EOSArray | None = None,
+    ) -> None:
         """
         Write complete equation of state data to the SESAME file.
 
@@ -100,14 +107,20 @@ class SesameWriter(Writer):
             Ion component equation of state
         electron_eos : Eos
             Electron component equation of state
+        density : EOSArray, optional
+            Density grid to use, by default None
+        temperature : EOSArray, optional
+            Temperature grid to use, by default None
         """
         self.write_comment("This table was generated with pyeos", 101)
         for comment in self.extra_comments:
             self.write_comment(comment)
         self.write_material_data(eos.Z, eos.A, 1.0, 1.0, 1.0)
 
-        density = np.geomspace(1e-10, 10, 100, dtype=np.float64)
-        temperature = np.geomspace(1, 174067875.0925, 100, dtype=np.float64)
+        if density is None:
+            density = np.geomspace(1e-12, 10, 1000, dtype=np.float64)
+        if temperature is None:
+            temperature = np.geomspace(1, 174067875.0925, 100, dtype=np.float64)
         density_grid, temperature_grid = np.meshgrid(density, temperature)
         density_grid = density_grid.flatten()
         temperature_grid = temperature_grid.flatten()
@@ -283,7 +296,7 @@ class SesameWriter(Writer):
             0 if self.comment_table == 101 else 1,
             self.material_id,
             self.comment_table,
-            len(data),
+            len(data) - len(comment_lines) + 1,
             date_str,
             date_str,
             1,
