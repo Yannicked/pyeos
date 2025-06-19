@@ -7,15 +7,13 @@ converts it to the other format, attempting to preserve the grid structure.
 """
 
 import os
-import click
-import numpy as np
 
-from pyeos.reader.ionmix import IonmixReader
-from pyeos.reader.sesame import SesameReader
-from pyeos.writer.ionmix import IonmixWriter
-from pyeos.writer.sesame import SesameWriter
+import click
+
 from pyeos.interpolated.ionmix_eos import IonmixEos
 from pyeos.interpolated.sesame_eos import SesameEos
+from pyeos.writer.ionmix import IonmixWriter
+from pyeos.writer.sesame import SesameWriter
 
 
 def detect_format(file_path):
