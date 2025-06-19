@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 from ..types import EOSArray
 
+__all__ = ["MaterialData", "MaterialProperties"]
+
 
 @dataclass
 class MaterialData:
