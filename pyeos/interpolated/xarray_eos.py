@@ -131,3 +131,13 @@ class XArrayEos(Eos):
             Helmholtz free energy value(s)
         """
         return self._interpolate(self.dataset.helmholtz_free_energy, rho, temperature)
+
+    def BulkModulusFromDensityTemperature(
+        self, rho: EOSReal, temperature: EOSReal
+    ) -> EOSReal:
+        """
+        Calculate bulk modulus from density and temperature.
+        """
+        dpdrho = self.dataset.pressure.differentiate("density")
+        dpdrho_interpolated = self._interpolate(dpdrho, rho, temperature)
+        return rho * dpdrho_interpolated
