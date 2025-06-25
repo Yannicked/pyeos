@@ -207,6 +207,7 @@ class SesameWriter(Writer):
             electron_pressure_array,
             electron_helmholtz_array,
         )
+        self.write_table_end()
 
     def write_header(
         self,
@@ -478,4 +479,4 @@ class SesameWriter(Writer):
         """
         Write the end marker for the SESAME file.
         """
-        self.file.write(" 2" + " " * 67 + "2\n")
+        self.file.write(" 2" + " " * 76 + " 2\n")
