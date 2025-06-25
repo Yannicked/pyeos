@@ -20,7 +20,9 @@ class SesameEos(XArrayEos):
     equation of state data with efficient interpolation.
     """
 
-    def __init__(self, file_name: str, component: str = "total") -> None:
+    def __init__(
+        self, file_name: str, component: str = "total", material_id: int | None = None
+    ) -> None:
         """
         Initialize the SESAME table interpolation equation of state.
 
@@ -34,7 +36,7 @@ class SesameEos(XArrayEos):
         """
         self.file_name = file_name
         self.component = component
-        self.reader = SesameReader(file_name)
+        self.reader = SesameReader(file_name, material_id)
 
         # Read material data
         material_properties = self.reader.read_material_properties()

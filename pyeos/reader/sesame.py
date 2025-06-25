@@ -28,7 +28,7 @@ class SesameReader(Reader):
     CGS_ENERGY_FROM_SESAME = 1e10
     CGS_PRESSURE_FROM_SESAME = 1e10
 
-    def __init__(self, file_name: str):
+    def __init__(self, file_name: str, material_id: int | None = None):
         """
         Initialize the SESAME reader.
 
@@ -38,66 +38,61 @@ class SesameReader(Reader):
             Path to the input file
         """
         self.file_name = file_name
-        self.file_content: List[str] = []
         self.tables: Dict[int, EOSArray] = {}
-        self.material_id: int | None = None
-        self._read_file()
+        self.material_id: int | None = material_id
         self._parse_tables()
-
-    def _read_file(self) -> None:
-        """
-        Read the SESAME file content.
-        """
-        with open(self.file_name, "r") as f:
-            self.file_content = f.readlines()
 
     def _parse_tables(self) -> None:
         """
         Parse the SESAME file content into tables.
         """
-        i = 0
-        while i < len(self.file_content):
-            line = self.file_content[i]
-            if len(line) < 20:  # Skip short lines
-                i += 1
-                continue
+        with open(self.file_name, "r") as f:
+            for material_id, table_id, data in self._record_iterator(f):
+                if self.material_id is None:
+                    self.material_id = material_id
+                elif self.material_id != material_id:
+                    continue
+                self.tables[table_id] = data
+            if not self.tables:
+                raise ValueError(
+                    f"Material {self.material_id} not found in SESAME file"
+                )
 
+    def _record_iterator(self, file_handle) -> iter:
+        """
+        Create an iterator for the records in the SESAME file.
+        """
+        file_iterator = iter(file_handle)
+        for line in file_iterator:
             # Parse header line
             try:
-                # file_number = int(line[0:2].strip())
+                file_number = int(line[0:2].strip())
+                if file_number == 2:
+                    continue
                 material_id = int(line[2:8].strip())
                 table_id = int(line[8:14].strip())
                 num_words = int(line[14:20].strip())
-            except ValueError:
-                i += 1
+            except (ValueError, IndexError):
                 continue
-
-            if self.material_id is None:
-                self.material_id = material_id
 
             # Process different table types
             if 101 <= table_id <= 199:  # Comment tables
                 # Skip comment tables for now
-                i += (num_words // 80) + (1 if num_words % 80 > 0 else 0) + 1
-            elif table_id == 201:  # Material data
-                data = self._read_data_block(i + 1, num_words)
-                self.tables[table_id] = data
-                i += self._count_data_lines(num_words) + 1
-            elif table_id in [301, 303, 304]:  # EOS data tables
-                data = self._read_data_block(i + 1, num_words)
-                self.tables[table_id] = data
-                i += self._count_data_lines(num_words) + 1
-            else:
-                i += 1
+                num_lines = (num_words // 80) + (1 if num_words % 80 > 0 else 0)
+                for _ in range(num_lines):
+                    next(file_iterator)
+            elif table_id in [201, 301, 303, 304]:  # EOS data tables
+                data = self._read_data_block(file_iterator, num_words)
+                yield material_id, table_id, data
 
-    def _read_data_block(self, start_line: int, num_words: int) -> EOSArray:
+    def _read_data_block(self, file_iterator: iter, num_words: int) -> EOSArray:
         """
         Read a block of data from the file.
 
         Parameters
         ----------
-        start_line : int
-            Line number to start reading from
+        file_iterator : iter
+            Iterator for the file lines
         num_words : int
             Number of words to read
 
@@ -107,10 +102,11 @@ class SesameReader(Reader):
             Array of data values
         """
         data: List[float] = []
-        lines_to_read = self._count_data_lines(num_words)
+        lines_to_read = (num_words + 4) // 5  # 5 words per line, rounded up
 
-        for i in range(lines_to_read):
-            line = self.file_content[start_line + i]
+        for i, line in enumerate(file_iterator):
+            if i >= lines_to_read:
+                break
             # Each line has up to 5 values, each 22 characters wide
             for j in range(5):
                 if len(line) >= (j + 1) * 22:
@@ -129,22 +125,6 @@ class SesameReader(Reader):
                 break
 
         return np.array(data)
-
-    def _count_data_lines(self, num_words: int) -> int:
-        """
-        Calculate the number of lines needed for a given number of words.
-
-        Parameters
-        ----------
-        num_words : int
-            Number of words
-
-        Returns
-        -------
-        int
-            Number of lines
-        """
-        return (num_words + 4) // 5  # 5 words per line, rounded up
 
     def _extract_table_data(self, table_id: int) -> MaterialData:
         """
