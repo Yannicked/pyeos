@@ -168,7 +168,7 @@ class IonmixReader(Reader):
                 self.num_dens = self._get_block(self.ndens)
 
             # Calculate mass density (g/cm^3)
-            self.dens = self.num_dens * self.mpi / NA
+            self.dens = self.num_dens * self.mpi
 
     def _get_block(self, n: int) -> EOSArray:
         """Reads a block of n numbers (12 chars each) from the data stream."""
@@ -271,7 +271,7 @@ class IonmixReader(Reader):
             # Total pressure not directly available in 1T IONMIX
             total_pressure = zeros  # Return zeros for pressure
 
-        total_energy_per_g = total_energy_per_ion / self.mpi
+        total_energy_per_g = total_energy_per_ion
         # Helmholtz not directly available
         total_helmholtz = zeros
 
@@ -289,7 +289,7 @@ class IonmixReader(Reader):
         """
         zeros = np.zeros((self.ndens, self.ntemp))
         if self.twot:
-            ion_energy_per_g = self.eion / self.mpi
+            ion_energy_per_g = self.eion
             ion_pressure = self.pion
             ion_helmholtz = zeros  # Ion Helmholtz not available
             return self._prepare_material_data(
@@ -308,7 +308,7 @@ class IonmixReader(Reader):
         """
         zeros = np.zeros((self.ndens, self.ntemp))
         if self.twot:
-            ele_energy_per_g = self.eele / self.mpi
+            ele_energy_per_g = self.eele
             ele_pressure = self.pele
 
             ele_helmholtz = zeros  # Electron Helmholtz not available/calculable

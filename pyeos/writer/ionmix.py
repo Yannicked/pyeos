@@ -95,7 +95,7 @@ class IonmixWriter(Writer):
         temps_ev = temperature * EV_FROM_K
 
         # Calculate number densities (cm^-3) from mass densities (g/cm^3)
-        num_dens = density * NA / self.mpi
+        num_dens = density / self.mpi
 
         # Create density/temperature meshgrid
         density_grid, temperature_grid = np.meshgrid(density, temperature)
@@ -121,20 +121,17 @@ class IonmixWriter(Writer):
             energy = eos.InternalEnergyFromDensityTemperature(
                 density_grid, temperature_grid
             )
-            energy_per_ion = energy * self.mpi  # Convert from erg/g to erg/ion
             # Reshape to (nt, nd), transpose to (nd, nt), then flatten to match reader
-            energy_per_ion = energy_per_ion.reshape(
-                len(temps_ev), len(num_dens)
-            ).T.flatten()
-            self._write_block(energy_per_ion * JOULE_FROM_ERG)  # Convert to Joules
+            energy = energy.reshape(len(temps_ev), len(num_dens)).T.flatten()
+            self._write_block(energy * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate total Cv per ion (ergs/K)
             # For simplicity, we'll use a constant value
-            cvtot = np.ones_like(energy_per_ion) * 1.0e-16
+            cvtot = np.ones_like(energy) * 1.0e-16
             self._write_block(cvtot * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate dE/dN (derivative of energy with respect to number density)
-            dedn = np.zeros_like(energy_per_ion)
+            dedn = np.zeros_like(energy)
             self._write_block(dedn)
         else:
             # 2T data
@@ -172,39 +169,27 @@ class IonmixWriter(Writer):
             ion_energy = ion_eos.InternalEnergyFromDensityTemperature(
                 density_grid, temperature_grid
             )
-            ion_energy_per_ion = ion_energy * self.mpi  # Convert from erg/g to erg/ion
             # Reshape to (nt, nd), transpose to (nd, nt), then flatten
-            ion_energy_per_ion_reshaped = ion_energy_per_ion.reshape(
-                len(temps_ev), len(num_dens)
-            ).T
-            ion_energy_per_ion_flat = ion_energy_per_ion_reshaped.flatten()
-            self._write_block(
-                ion_energy_per_ion_flat * JOULE_FROM_ERG
-            )  # Convert to Joules
+            ion_energy = ion_energy.reshape(len(temps_ev), len(num_dens)).T.flatten()
+            self._write_block(ion_energy * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate electron energy per ion (ergs)
             ele_energy = electron_eos.InternalEnergyFromDensityTemperature(
                 density_grid, temperature_grid
             )
-            ele_energy_per_ion = ele_energy * self.mpi  # Convert from erg/g to erg/ion
             # Reshape to (nt, nd), transpose to (nd, nt), then flatten
-            ele_energy_per_ion_reshaped = ele_energy_per_ion.reshape(
-                len(temps_ev), len(num_dens)
-            ).T
-            ele_energy_per_ion_flat = ele_energy_per_ion_reshaped.flatten()
-            self._write_block(
-                ele_energy_per_ion_flat * JOULE_FROM_ERG
-            )  # Convert to Joules
+            ele_energy = ele_energy.reshape(len(temps_ev), len(num_dens)).T.flatten()
+            self._write_block(ele_energy * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate ion and electron Cv per ion (ergs/K)
-            cvion = np.ones_like(ion_energy_per_ion) * 1.0e-16
-            cvele = np.ones_like(ele_energy_per_ion) * 1.0e-16
+            cvion = np.ones_like(ion_energy) * 1.0e-16
+            cvele = np.ones_like(ele_energy) * 1.0e-16
             self._write_block(cvion * JOULE_FROM_ERG)  # Convert to Joules
             self._write_block(cvele * JOULE_FROM_ERG)  # Convert to Joules
 
             # Calculate dE_ion/dN and dE_ele/dN
-            deidn = np.zeros_like(ion_energy_per_ion)
-            deedn = np.zeros_like(ele_energy_per_ion)
+            deidn = np.zeros_like(ion_energy)
+            deedn = np.zeros_like(ele_energy)
             self._write_block(deidn * JOULE_FROM_ERG)  # Convert to Joules
             self._write_block(deedn * JOULE_FROM_ERG)  # Convert to Joules
 
