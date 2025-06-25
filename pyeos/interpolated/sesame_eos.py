@@ -41,6 +41,7 @@ class SesameEos(XArrayEos):
         self._Z = material_properties.atomic_number
         self._A = material_properties.atomic_mass
         self._material_id = self.reader.material_id
+        self.material_properties = material_properties
 
         # Read EOS data based on component
         if component == "total":
