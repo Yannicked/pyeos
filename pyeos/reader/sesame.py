@@ -38,9 +38,9 @@ class SesameReader(Reader):
             Path to the input file
         """
         self.file_name = file_name
-        self.file_content: List[str] = []
         self.tables: Dict[int, EOSArray] = {}
         self.material_id: int | None = None
+        self.comments: List[str] = []
         self._read_file()
         self._parse_tables()
 
@@ -48,49 +48,83 @@ class SesameReader(Reader):
         """
         Read the SESAME file content.
         """
-        with open(self.file_name, "r") as f:
-            self.file_content = f.readlines()
+        self.file = open(self.file_name, "r")
+
+    def _consume_header(self):
+        header_line = next(self.file)
+        header_pieces = header_line.split()
+        file_number = int(header_pieces[0])
+        material_id = int(header_pieces[1])
+        table_id = int(header_pieces[2])
+        num_words = int(header_pieces[3])
+        create_date = str(header_pieces[4])
+        update_date = str(header_pieces[5])
+        version_number = str(header_pieces[6])
+        return (
+            file_number,
+            material_id,
+            table_id,
+            num_words,
+            create_date,
+            update_date,
+            version_number,
+        )
 
     def _parse_tables(self) -> None:
         """
         Parse the SESAME file content into tables.
         """
-        i = 0
-        while i < len(self.file_content):
-            line = self.file_content[i]
-            if len(line) < 20:  # Skip short lines
-                i += 1
-                continue
-
+        version = next(self.file)
+        while True:
             # Parse header line
             try:
-                # file_number = int(line[0:2].strip())
-                material_id = int(line[2:8].strip())
-                table_id = int(line[8:14].strip())
-                num_words = int(line[14:20].strip())
+                (
+                    _,
+                    material_id,
+                    table_id,
+                    num_words,
+                    _,
+                    _,
+                    _,
+                ) = self._consume_header()
             except ValueError:
-                i += 1
                 continue
+            except StopIteration:
+                break
 
             if self.material_id is None:
                 self.material_id = material_id
 
             # Process different table types
             if 101 <= table_id <= 199:  # Comment tables
-                # Skip comment tables for now
-                i += (num_words // 80) + (1 if num_words % 80 > 0 else 0) + 1
+                comments = self._read_comment_block(num_words)
+                if "unclassified" not in comments.lower() and table_id == 101:
+                    print(material_id)
+                if self.material_id == material_id:
+                    self.comments.append(comments)
             elif table_id == 201:  # Material data
-                data = self._read_data_block(i + 1, num_words)
-                self.tables[table_id] = data
-                i += self._count_data_lines(num_words) + 1
+                data = self._read_data_block(num_words)
+                if self.material_id == material_id:
+                    self.tables[table_id] = data
             elif table_id in [301, 303, 304]:  # EOS data tables
-                data = self._read_data_block(i + 1, num_words)
-                self.tables[table_id] = data
-                i += self._count_data_lines(num_words) + 1
-            else:
-                i += 1
+                data = self._read_data_block(num_words)
+                if self.material_id == material_id:
+                    self.tables[table_id] = data
+        self.file.close()
 
-    def _read_data_block(self, start_line: int, num_words: int) -> EOSArray:
+    def _read_comment_block(self, num_words: int):
+        n_read = 0
+        comment = ""
+        while True:
+            line = next(self.file)
+            line = line.replace("\n", "")
+            comment += line
+            n_read += len(line)
+            if n_read >= num_words:
+                break
+        return comment
+
+    def _read_data_block(self, num_words: int) -> EOSArray:
         """
         Read a block of data from the file.
 
@@ -107,44 +141,24 @@ class SesameReader(Reader):
             Array of data values
         """
         data: List[float] = []
-        lines_to_read = self._count_data_lines(num_words)
 
-        for i in range(lines_to_read):
-            line = self.file_content[start_line + i]
+        while True:
+            line = next(self.file)
             # Each line has up to 5 values, each 22 characters wide
-            for j in range(5):
-                if len(line) >= (j + 1) * 22:
-                    word_str = line[j * 22 : (j + 1) * 22].strip()
-                    if word_str:
-                        try:
-                            data.append(float(word_str))
-                        except ValueError:
-                            # Skip invalid values
-                            pass
+            for word_str in line.split():
+                try:
+                    data.append(float(word_str))
+                except ValueError:
+                    # Skip invalid values
+                    pass
 
-                    if len(data) >= num_words:
-                        break
+                if len(data) >= num_words:
+                    break
 
             if len(data) >= num_words:
                 break
 
         return np.array(data)
-
-    def _count_data_lines(self, num_words: int) -> int:
-        """
-        Calculate the number of lines needed for a given number of words.
-
-        Parameters
-        ----------
-        num_words : int
-            Number of words
-
-        Returns
-        -------
-        int
-            Number of lines
-        """
-        return (num_words + 4) // 5  # 5 words per line, rounded up
 
     def _extract_table_data(self, table_id: int) -> MaterialData:
         """
